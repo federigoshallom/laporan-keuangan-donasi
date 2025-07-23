@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Planning - Yayasan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Library untuk export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        .navbar { background: linear-gradient(135deg, var(--primary), #34495e) !important; }
+        .sidebar { background: #ecf0f1 !important; min-height: calc(100vh - 56px); }
+        .nav-link { color: var(--primary) !important; border-radius: 8px; transition: all 0.3s; }
+        .nav-link:hover { background: var(--accent); color: white !important; }
+        .nav-link.active { background: var(--primary); color: white !important; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .main-content { background: #f8f9fa; min-height: calc(100vh - 56px); padding: 20px; }
+        .budget-item { border-left: 4px solid var(--accent); padding-left: 15px; margin-bottom: 15px; }
+        .budget-item.warning { border-left-color: var(--warning); }
+        .budget-item.danger { border-left-color: var(--danger); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-handshake me-2"></i>Dashboard Yayasan</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-light" onclick="logout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-4 px-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/riwayat"><i class="fas fa-history me-2"></i>Riwayat Donasi</a></li>
+                        <li class="nav-item" id="adminMenu1" style="display: none;"><a class="nav-link" href="/input-donasi"><i class="fas fa-plus me-2"></i>Input Donasi</a></li>
+                        <li class="nav-item"><a class="nav-link active" href="/budget"><i class="fas fa-calculator me-2"></i>Budget Planning</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/expenses"><i class="fas fa-receipt me-2"></i>Pengeluaran</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/laporan"><i class="fas fa-chart-line me-2"></i>Laporan</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h1 class="h2 mb-1">Budget Planning</h1>
+                                <p class="text-muted mb-0">Kelola anggaran dan alokasi dana</p>
+                            </div>
+                            <div id="adminButtons" style="display: none;">
+                                <button class="btn btn-success me-2" onclick="exportBudgetToExcel()">
+                                    <i class="fas fa-file-excel me-1"></i>Export Excel
+                                </button>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#budgetModal">
+                                    <i class="fas fa-plus me-1"></i>Tambah Budget
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Overview Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Budget</h5>
+                                <h3 id="totalBudget">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success">
+                            <div class="card-body">
+                                <h5 class="card-title">Terpakai</h5>
+                                <h3 id="usedBudget">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning">
+                            <div class="card-body">
+                                <h5 class="card-title">Sisa Budget</h5>
+                                <h3 id="remainingBudget">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-info">
+                            <div class="card-body">
+                                <h5 class="card-title">Persentase</h5>
+                                <h3 id="budgetPercentage">0%</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Categories -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Budget per Kategori</h5>
+                        <div id="budgetCategories">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Budget -->
+    <div class="modal fade" id="budgetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Budget Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="budgetForm">
+                        <div class="mb-3">
+                            <label for="kategori" class="form-label">Kategori *</label>
+                            <select class="form-control" id="kategori" required>
+                                <option value="">Pilih Kategori</option>
+                                <option value="Operasional">Operasional</option>
+                                <option value="Program Sosial">Program Sosial</option>
+                                <option value="Infrastruktur">Infrastruktur</option>
+                                <option value="Pendidikan">Pendidikan</option>
+                                <option value="Kesehatan">Kesehatan</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="budgetAmount" class="form-label">Jumlah Budget *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="budgetAmount" min="1000" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="periode" class="form-label">Periode *</label>
+                            <input type="month" class="form-control" id="periode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deskripsi" class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="deskripsi" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveBudget()">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Budget -->
+    <div class="modal fade" id="editBudgetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Budget</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editBudgetForm">
+                        <input type="hidden" id="editBudgetId">
+                        <div class="mb-3">
+                            <label for="editKategori" class="form-label">Kategori *</label>
+                            <select class="form-control" id="editKategori" required>
+                                <option value="">Pilih Kategori</option>
+                                <option value="Operasional">Operasional</option>
+                                <option value="Program Sosial">Program Sosial</option>
+                                <option value="Infrastruktur">Infrastruktur</option>
+                                <option value="Pendidikan">Pendidikan</option>
+                                <option value="Kesehatan">Kesehatan</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editBudgetAmount" class="form-label">Jumlah Budget *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="editBudgetAmount" min="1000" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPeriode" class="form-label">Periode *</label>
+                            <input type="month" class="form-control" id="editPeriode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDeskripsi" class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="editDeskripsi" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="updateBudget()">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentBudgetData = []; // Store current data for export
+        let isAdmin = false;
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            document.getElementById('userInfo').textContent = `Halo, ${user.username} (${user.role})`;
+            isAdmin = user.role === 'user';
+
+            if (isAdmin) {
+                document.getElementById('adminMenu1').style.display = 'block';
+                document.getElementById('adminButtons').style.display = 'block';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
+        }
+
+        async function loadBudgetData() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/budgets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const budgets = await response.json();
+                
+                if (response.ok) {
+                    currentBudgetData = budgets; // Store for export
+                    const overview = calculateBudgetOverview(budgets);
+                    updateBudgetOverview(overview);
+                    displayBudgetCategories(budgets);
+                } else {
+                    throw new Error(budgets.message);
+                }
+                
+            } catch (error) {
+                console.error('Error loading budget data:', error);
+                document.getElementById('budgetCategories').innerHTML = 
+                    '<div class="text-center text-danger">Gagal memuat data budget</div>';
+            }
+        }
+
+        function calculateBudgetOverview(budgets) {
+            const total = budgets.reduce((sum, budget) => sum + budget.anggaran, 0);
+            const used = budgets.reduce((sum, budget) => sum + budget.terpakai, 0);
+            const remaining = total - used;
+            const percentage = total > 0 ? Math.round((used / total) * 100) : 0;
+            
+            return { total, used, remaining, percentage };
+        }
+
+        function updateBudgetOverview(overview) {
+            document.getElementById('totalBudget').textContent = formatCurrency(overview.total);
+            document.getElementById('usedBudget').textContent = formatCurrency(overview.used);
+            document.getElementById('remainingBudget').textContent = formatCurrency(overview.remaining);
+            document.getElementById('budgetPercentage').textContent = overview.percentage + '%';
+        }
+
+        function displayBudgetCategories(budgets) {
+            const container = document.getElementById('budgetCategories');
+            
+            if (budgets.length === 0) {
+                container.innerHTML = '<div class="text-center">Belum ada budget yang dibuat</div>';
+                return;
+            }
+            
+            container.innerHTML = budgets.map(budget => {
+                const percentage = budget.anggaran > 0 ? (budget.terpakai / budget.anggaran) * 100 : 0;
+                let progressClass = 'bg-success';
+                let itemClass = '';
+                
+                if (percentage >= 80) {
+                    progressClass = 'bg-danger';
+                    itemClass = 'danger';
+                } else if (percentage >= 60) {
+                    progressClass = 'bg-warning';
+                    itemClass = 'warning';
+                }
+                
+                return `
+                    <div class="budget-item ${itemClass}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">${budget.kategori}</h6>
+                            <div>
+                                <span class="badge bg-secondary me-2">${budget.periode}</span>
+                                ${isAdmin ? `
+                                    <button class="btn btn-sm btn-warning me-1" onclick="editBudget('${budget._id}')" title="Edit Budget">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteBudget('${budget._id}')" title="Hapus Budget">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Terpakai: ${formatCurrency(budget.terpakai)}</small>
+                            <small>Budget: ${formatCurrency(budget.anggaran)}</small>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar ${progressClass}" style="width: ${Math.min(percentage, 100)}%">
+                                ${Math.round(percentage)}%
+                            </div>
+                        </div>
+                        ${budget.nama ? `<small class="text-muted mt-1 d-block">${budget.nama}</small>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Add edit and delete functions (only for admin)
+        async function editBudget(id) {
+            if (!isAdmin) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/budgets/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const budget = await response.json();
+                
+                // Fill edit form
+                document.getElementById('editBudgetId').value = budget._id;
+                document.getElementById('editKategori').value = budget.kategori;
+                document.getElementById('editBudgetAmount').value = budget.anggaran;
+                document.getElementById('editPeriode').value = budget.periode;
+                document.getElementById('editDeskripsi').value = budget.deskripsi || '';
+                
+                // Show modal
+                new bootstrap.Modal(document.getElementById('editBudgetModal')).show();
+            } catch (error) {
+                alert('Gagal memuat data budget');
+            }
+        }
+
+        async function updateBudget() {
+            if (!isAdmin) return;
+            
+            const formData = {
+                nama: document.getElementById('editKategori').value,
+                kategori: document.getElementById('editKategori').value,
+                anggaran: parseInt(document.getElementById('editBudgetAmount').value),
+                periode: document.getElementById('editPeriode').value,
+                deskripsi: document.getElementById('editDeskripsi').value
+            };
+            
+            if (!formData.kategori || !formData.anggaran || !formData.periode) {
+                alert('Mohon lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const id = document.getElementById('editBudgetId').value;
+                const response = await fetch(`/api/budgets/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Budget berhasil diupdate!');
+                    bootstrap.Modal.getInstance(document.getElementById('editBudgetModal')).hide();
+                    loadBudgetData();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate budget');
+            }
+        }
+
+        async function deleteBudget(id) {
+            if (!isAdmin) return;
+            
+            if (!confirm('Yakin ingin menghapus budget ini? Data yang terkait akan terpengaruh.')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/budgets/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    alert('Budget berhasil dihapus');
+                    loadBudgetData();
+                } else {
+                    alert('Gagal menghapus budget');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menghapus budget');
+            }
+        }
+
+        async function saveBudget() {
+            if (!isAdmin) return;
+            
+            const formData = {
+                nama: document.getElementById('kategori').value,
+                kategori: document.getElementById('kategori').value,
+                anggaran: parseInt(document.getElementById('budgetAmount').value),
+                periode: document.getElementById('periode').value
+            };
+            
+            if (!formData.kategori || !formData.anggaran || !formData.periode) {
+                alert('Mohon lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/budgets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Budget berhasil disimpan!');
+                    document.getElementById('budgetForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+                    loadBudgetData();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menyimpan budget');
+            }
+        }
+
+        function setDefaultPeriod() {
+            const now = new Date();
+            const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('periode').value = currentMonth;
+        }
+
+        // Export function for budget (only for admin)
+        function exportBudgetToExcel() {
+            if (!isAdmin) return;
+            
+            if (currentBudgetData.length === 0) {
+                alert('Tidak ada data untuk di-export');
+                return;
+            }
+
+            const excelData = currentBudgetData.map((budget, index) => ({
+                'No': index + 1,
+                'Kategori': budget.kategori,
+                'Periode': budget.periode,
+                'Anggaran': budget.anggaran,
+                'Terpakai': budget.terpakai,
+                'Sisa': budget.anggaran - budget.terpakai,
+                'Persentase Terpakai': Math.round((budget.terpakai / budget.anggaran) * 100) + '%',
+                'Status': budget.status
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Data Budget');
+
+            const filename = `Data-Budget-${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        checkAuth();
+        loadBudgetData();
+        if (isAdmin) {
+            setDefaultPeriod();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengeluaran - Yayasan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Library untuk export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+        }
+        .navbar { background: linear-gradient(135deg, var(--primary), #34495e) !important; }
+        .sidebar { background: #ecf0f1 !important; min-height: calc(100vh - 56px); }
+        .nav-link { color: var(--primary) !important; border-radius: 8px; transition: all 0.3s; }
+        .nav-link:hover { background: var(--accent); color: white !important; }
+        .nav-link.active { background: var(--primary); color: white !important; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .main-content { background: #f8f9fa; min-height: calc(100vh - 56px); padding: 20px; }
+        .table thead th { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-handshake me-2"></i>Dashboard Yayasan</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-light" onclick="logout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-4 px-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/riwayat"><i class="fas fa-history me-2"></i>Riwayat Donasi</a></li>
+                        <li class="nav-item" id="adminMenu1" style="display: none;"><a class="nav-link" href="/input-donasi"><i class="fas fa-plus me-2"></i>Input Donasi</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/budget"><i class="fas fa-calculator me-2"></i>Budget Planning</a></li>
+                        <li class="nav-item"><a class="nav-link active" href="/expenses"><i class="fas fa-receipt me-2"></i>Pengeluaran</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/laporan"><i class="fas fa-chart-line me-2"></i>Laporan</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h1 class="h2 mb-1">Pengeluaran</h1>
+                                <p class="text-muted mb-0">Kelola pengeluaran dan budget</p>
+                            </div>
+                            <div id="adminButtons" style="display: none;">
+                                <button class="btn btn-success me-2" onclick="exportExpensesToExcel()">
+                                    <i class="fas fa-file-excel me-1"></i>Export Excel
+                                </button>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#expenseModal">
+                                    <i class="fas fa-plus me-1"></i>Tambah Pengeluaran
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card text-white bg-danger">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Pengeluaran</h5>
+                                <h3 id="totalExpenses">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-warning">
+                            <div class="card-body">
+                                <h5 class="card-title">Bulan Ini</h5>
+                                <h3 id="monthlyExpenses">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-info">
+                            <div class="card-body">
+                                <h5 class="card-title">Budget Tersisa</h5>
+                                <h3 id="remainingBudget">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Daftar Pengeluaran</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Tanggal</th>
+                                        <th>Kategori</th>
+                                        <th>Deskripsi</th>
+                                        <th>Jumlah</th>
+                                        <th>Budget</th>
+                                        <th id="actionHeader" style="display: none;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expensesTableBody">
+                                    <tr><td colspan="7" class="text-center"><div class="spinner-border"></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Pengeluaran -->
+    <div class="modal fade" id="expenseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Pengeluaran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="expenseForm">
+                        <div class="mb-3">
+                            <label for="expenseCategory" class="form-label">Kategori *</label>
+                            <select class="form-control" id="expenseCategory" required>
+                                <option value="">Pilih Kategori</option>
+                                <option value="Operasional">Operasional</option>
+                                <option value="Program Sosial">Program Sosial</option>
+                                <option value="Infrastruktur">Infrastruktur</option>
+                                <option value="Pendidikan">Pendidikan</option>
+                                <option value="Kesehatan">Kesehatan</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expenseBudget" class="form-label">Budget (Opsional)</label>
+                            <select class="form-control" id="expenseBudget">
+                                <option value="">Tidak menggunakan budget</option>
+                            </select>
+                            <small class="text-muted">Pilih budget untuk mengurangi dana otomatis</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expenseAmount" class="form-label">Jumlah *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="expenseAmount" min="1000" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expenseDate" class="form-label">Tanggal *</label>
+                            <input type="date" class="form-control" id="expenseDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expenseDescription" class="form-label">Deskripsi *</label>
+                            <textarea class="form-control" id="expenseDescription" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveExpense()">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Pengeluaran -->
+    <div class="modal fade" id="editExpenseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Pengeluaran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editExpenseForm">
+                        <input type="hidden" id="editExpenseId">
+                        <div class="mb-3">
+                            <label for="editExpenseCategory" class="form-label">Kategori *</label>
+                            <select class="form-control" id="editExpenseCategory" required>
+                                <option value="">Pilih Kategori</option>
+                                <option value="Operasional">Operasional</option>
+                                <option value="Program Sosial">Program Sosial</option>
+                                <option value="Infrastruktur">Infrastruktur</option>
+                                <option value="Pendidikan">Pendidikan</option>
+                                <option value="Kesehatan">Kesehatan</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editExpenseBudget" class="form-label">Budget (Opsional)</label>
+                            <select class="form-control" id="editExpenseBudget">
+                                <option value="">Tidak menggunakan budget</option>
+                            </select>
+                            <small class="text-muted">Pilih budget untuk mengurangi dana otomatis</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editExpenseAmount" class="form-label">Jumlah *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="editExpenseAmount" min="1000" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editExpenseDate" class="form-label">Tanggal *</label>
+                            <input type="date" class="form-control" id="editExpenseDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editExpenseDescription" class="form-label">Deskripsi *</label>
+                            <textarea class="form-control" id="editExpenseDescription" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="updateExpense()">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentExpensesData = []; // Store current data for export
+        let isAdmin = false;
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            document.getElementById('userInfo').textContent = `Halo, ${user.username} (${user.role})`;
+            isAdmin = user.role === 'user';
+
+            if (isAdmin) {
+                document.getElementById('adminMenu1').style.display = 'block';
+                document.getElementById('adminButtons').style.display = 'block';
+                document.getElementById('actionHeader').style.display = 'table-cell';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('id-ID');
+        }
+
+        async function loadBudgets() {
+            if (!isAdmin) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/budgets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const budgets = await response.json();
+                const select = document.getElementById('expenseBudget');
+                
+                // Clear existing options except first one
+                select.innerHTML = '<option value="">Tidak menggunakan budget</option>';
+                
+                budgets.forEach(budget => {
+                    const remaining = budget.anggaran - budget.terpakai;
+                    if (remaining > 0) {
+                        const option = document.createElement('option');
+                        option.value = budget._id;
+                        option.textContent = `${budget.kategori} - ${budget.periode} (Sisa: ${formatCurrency(remaining)})`;
+                        select.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading budgets:', error);
+            }
+        }
+
+        async function loadExpenses() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/expenses', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentExpensesData = data.expenses; // Store for export
+                    displayExpenses(data.expenses);
+                    updateSummary(data.summary);
+                } else {
+                    throw new Error(data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+                document.getElementById('expensesTableBody').innerHTML = 
+                    '<tr><td colspan="7" class="text-center text-danger">Gagal memuat data</td></tr>';
+            }
+        }
+
+        function displayExpenses(expenses) {
+            const tbody = document.getElementById('expensesTableBody');
+            
+            if (expenses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada data</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = expenses.map((expense, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${formatDate(expense.tanggal)}</td>
+                    <td><span class="badge bg-secondary">${expense.kategori}</span></td>
+                    <td>${expense.deskripsi}</td>
+                    <td>${formatCurrency(expense.jumlah)}</td>
+                    <td>${expense.budgetInfo ? `<span class="badge bg-info">${expense.budgetInfo}</span>` : '<span class="text-muted">-</span>'}</td>
+                    ${isAdmin ? `
+                        <td>
+                            <button class="btn btn-sm btn-warning me-1" onclick="editExpense('${expense._id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteExpense('${expense._id}')" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    ` : ''}
+                </tr>
+            `).join('');
+        }
+
+        // Add edit function (only for admin)
+        async function editExpense(id) {
+            if (!isAdmin) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/expenses/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const expense = await response.json();
+                
+                // Fill edit form
+                document.getElementById('editExpenseId').value = expense._id;
+                document.getElementById('editExpenseCategory').value = expense.kategori;
+                document.getElementById('editExpenseAmount').value = expense.jumlah;
+                document.getElementById('editExpenseDate').value = expense.tanggal.split('T')[0];
+                document.getElementById('editExpenseDescription').value = expense.deskripsi;
+                document.getElementById('editExpenseBudget').value = expense.budgetId || '';
+                
+                // Load budgets for edit form
+                await loadBudgetsForEdit();
+                
+                // Show modal
+                new bootstrap.Modal(document.getElementById('editExpenseModal')).show();
+            } catch (error) {
+                alert('Gagal memuat data pengeluaran');
+            }
+        }
+
+        async function loadBudgetsForEdit() {
+            if (!isAdmin) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/budgets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const budgets = await response.json();
+                const select = document.getElementById('editExpenseBudget');
+                
+                // Clear existing options except first one
+                select.innerHTML = '<option value="">Tidak menggunakan budget</option>';
+                
+                budgets.forEach(budget => {
+                    const remaining = budget.anggaran - budget.terpakai;
+                    const option = document.createElement('option');
+                    option.value = budget._id;
+                    option.textContent = `${budget.kategori} - ${budget.periode} (Sisa: ${formatCurrency(remaining)})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading budgets for edit:', error);
+            }
+        }
+
+        async function updateExpense() {
+            if (!isAdmin) return;
+            
+            const formData = {
+                nama: document.getElementById('editExpenseDescription').value,
+                kategori: document.getElementById('editExpenseCategory').value,
+                jumlah: parseInt(document.getElementById('editExpenseAmount').value),
+                tanggal: document.getElementById('editExpenseDate').value,
+                deskripsi: document.getElementById('editExpenseDescription').value,
+                budgetId: document.getElementById('editExpenseBudget').value || null
+            };
+            
+            if (!formData.kategori || !formData.jumlah || !formData.tanggal || !formData.deskripsi) {
+                alert('Mohon lengkapi semua field');
+                return;
+            }
+            
+            const selectedDate = new Date(formData.tanggal);
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+            
+            if (selectedDate > today) {
+                alert('Tanggal pengeluaran tidak boleh di masa depan');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const id = document.getElementById('editExpenseId').value;
+                const response = await fetch(`/api/expenses/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Pengeluaran berhasil diupdate!');
+                    bootstrap.Modal.getInstance(document.getElementById('editExpenseModal')).hide();
+                    loadExpenses();
+                    loadBudgets(); // Refresh budget list
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate pengeluaran');
+            }
+        }
+
+        function updateSummary(summary) {
+            document.getElementById('totalExpenses').textContent = formatCurrency(summary.total);
+            document.getElementById('monthlyExpenses').textContent = formatCurrency(summary.monthly);
+            document.getElementById('remainingBudget').textContent = formatCurrency(summary.remainingBudget || 0);
+        }
+
+        async function saveExpense() {
+            if (!isAdmin) return;
+            
+            const formData = {
+                nama: document.getElementById('expenseDescription').value,
+                kategori: document.getElementById('expenseCategory').value,
+                jumlah: parseInt(document.getElementById('expenseAmount').value),
+                tanggal: document.getElementById('expenseDate').value,
+                deskripsi: document.getElementById('expenseDescription').value,
+                budgetId: document.getElementById('expenseBudget').value || null
+            };
+            
+            if (!formData.kategori || !formData.jumlah || !formData.tanggal || !formData.deskripsi) {
+                alert('Mohon lengkapi semua field');
+                return;
+            }
+            
+            const selectedDate = new Date(formData.tanggal);
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+            
+            if (selectedDate > today) {
+                alert('Tanggal pengeluaran tidak boleh di masa depan');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Pengeluaran berhasil disimpan!');
+                    document.getElementById('expenseForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
+                    loadExpenses();
+                    loadBudgets(); // Refresh budget list
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menyimpan pengeluaran');
+            }
+        }
+
+        async function deleteExpense(id) {
+            if (!isAdmin) return;
+            
+            if (!confirm('Yakin ingin menghapus pengeluaran ini?')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/expenses/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    alert('Pengeluaran berhasil dihapus');
+                    loadExpenses();
+                    loadBudgets(); // Refresh budget list
+                } else {
+                    alert('Gagal menghapus pengeluaran');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menghapus pengeluaran');
+            }
+        }
+
+        function setDefaultDate() {
+            if (!isAdmin) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('expenseDate');
+            dateInput.value = today;
+            dateInput.max = today;
+        }
+
+        // Export function for expenses (only for admin)
+        function exportExpensesToExcel() {
+            if (!isAdmin) return;
+            
+            if (currentExpensesData.length === 0) {
+                alert('Tidak ada data untuk di-export');
+                return;
+            }
+
+            const excelData = currentExpensesData.map((expense, index) => ({
+                'No': index + 1,
+                'Tanggal': formatDate(expense.tanggal),
+                'Kategori': expense.kategori,
+                'Deskripsi': expense.deskripsi,
+                'Jumlah': expense.jumlah,
+                'Budget Terkait': expense.budgetInfo || '-'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Data Pengeluaran');
+
+            const filename = `Data-Pengeluaran-${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        checkAuth();
+        loadExpenses();
+        if (isAdmin) {
+            loadBudgets();
+            setDefaultDate();
+        }
+    </script>
+</body>
+</html>

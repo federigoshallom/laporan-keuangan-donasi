@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Donasi - Yayasan</title>
+    <!-- Import Bootstrap CSS untuk styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Import Font Awesome untuk icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* CSS Variables untuk tema warna profesional */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-text: #2c3e50;
+        }
+        
+        /* Styling untuk navbar dengan gradient */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Styling untuk sidebar */
+        .sidebar {
+            background-color: var(--light-bg) !important;
+            border-right: 1px solid #dee2e6;
+            min-height: calc(100vh - 56px);
+        }
+        
+        /* Styling untuk navigation links */
+        .nav-link {
+            color: var(--dark-text) !important;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s ease;
+            padding: 12px 16px;
+        }
+        
+        /* Hover effect untuk nav links */
+        .nav-link:hover {
+            background-color: var(--accent-color);
+            color: white !important;
+            transform: translateX(5px);
+        }
+        
+        /* Active state untuk nav links */
+        .nav-link.active {
+            background-color: var(--primary-color);
+            color: white !important;
+            box-shadow: 0 2px 8px rgba(44, 62, 80, 0.3);
+        }
+        
+        /* Styling untuk cards */
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        /* Hover effect untuk cards */
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        /* Custom button styling */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #2980b9 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #229954 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #2c3e50 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+        }
+        
+        /* Form control styling dengan border dan focus effect */
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Focus state untuk form control */
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            transform: translateY(-1px);
+        }
+        
+        /* Main content styling */
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: calc(100vh - 56px);
+            padding: 20px;
+        }
+        
+        /* Page header styling */
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        /* Input group styling */
+        .input-group-text {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            border-radius: 10px 0 0 10px;
+            font-weight: 600;
+        }
+        
+        /* Alert styling */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(41, 128, 185, 0.1) 100%);
+            color: var(--accent-color);
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1) 0%, rgba(34, 153, 84, 0.1) 100%);
+            color: var(--success-color);
+        }
+        
+        /* Payment method icons */
+        .payment-icon {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        /* Tambahkan setelah existing CSS */
+
+        /* Form animations */
+        .form-control, .form-select {
+            animation: fadeInUp 0.4s ease-out;
+            position: relative;
+        }
+
+        .form-control:focus, .form-select:focus {
+            animation: pulse 0.3s ease-out;
+        }
+
+        /* Label animations */
+        .form-label {
+            animation: slideInLeft 0.5s ease-out;
+            position: relative;
+        }
+
+        .form-label i {
+            animation: pulse 2s infinite;
+        }
+
+        /* Card entrance animation */
+        .card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* Button effects */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Input group styling */
+        .input-group {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .input-group-text {
+            animation: slideInLeft 0.4s ease-out;
+        }
+
+        /* Alert styling */
+        .alert {
+            animation: slideInDown 0.4s ease-out;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            border-left-color: var(--accent-color);
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(41, 128, 185, 0.05) 100%);
+        }
+
+        .alert-success {
+            border-left-color: var(--success-color);
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1) 0%, rgba(34, 153, 84, 0.05) 100%);
+        }
+
+        /* Select option groups */
+        optgroup {
+            font-weight: bold;
+            color: var(--primary-color);
+            background-color: var(--light-bg);
+        }
+
+        option {
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 10px;
+            }
+            
+            .page-header {
+                padding: 15px;
+                text-align: center;
+            }
+            
+            .card-body {
+                padding: 20px 15px;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Form validation states */
+        .form-control:valid {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+        }
+
+        .form-control:invalid {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 0 0.2rem rgba(231, 76, 60, 0.25);
+        }
+
+        /* Loading state for form submission */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            animation: pulse 1s infinite;
+        }
+
+        /* Success feedback */
+        .success-feedback {
+            animation: bounceIn 0.6s ease-out;
+            background: linear-gradient(135deg, var(--success-color) 0%, #229954 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <!-- Brand dengan icon handshake -->
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-handshake me-2"></i>Dashboard Yayasan
+            </a>
+            <!-- User info dan logout button -->
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-light rounded-pill" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar Navigation - hanya menampilkan menu admin -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-4 px-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/riwayat">
+                                <i class="fas fa-history me-2"></i>Riwayat Donasi
+                            </a>
+                        </li>
+                        <!-- Menu Goals - tampil untuk semua user -->
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/input-donasi">
+                                <i class="fas fa-plus me-2"></i>Input Donasi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/budget">
+                                <i class="fas fa-calculator me-2"></i>Budget Planning
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/expenses">
+                                <i class="fas fa-receipt me-2"></i>Pengeluaran
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/laporan">
+                                <i class="fas fa-chart-line me-2"></i>Laporan
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h2 mb-1">Input Donasi Baru</h1>
+                            <p class="text-muted mb-0">Tambahkan data donasi baru ke dalam sistem</p>
+                        </div>
+                        <div>
+                            <i class="fas fa-plus-circle text-primary" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Form Input Donasi -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-body p-4">
+                                <h5 class="card-title mb-4">
+                                    <i class="fas fa-edit me-2 text-primary"></i>Form Input Donasi
+                                </h5>
+                                <!-- Form untuk input data donasi baru -->
+                                <form id="donationForm">
+                                    <div class="row">
+                                        <!-- Input Nama Donatur -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="nama" class="form-label fw-semibold">
+                                                    <i class="fas fa-user me-1"></i>Nama Donatur *
+                                                </label>
+                                                <input type="text" class="form-control" id="nama" required placeholder="Masukkan nama lengkap">
+                                            </div>
+                                        </div>
+                                        <!-- Input Email -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="email" class="form-label fw-semibold">
+                                                    <i class="fas fa-envelope me-1"></i>Email
+                                                </label>
+                                                <input type="email" class="form-control" id="email" placeholder="contoh@email.com">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <!-- Input Nomor Telepon -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="telepon" class="form-label fw-semibold">
+                                                    <i class="fas fa-phone me-1"></i>Nomor Telepon
+                                                </label>
+                                                <input type="tel" class="form-control" id="telepon" placeholder="08xxxxxxxxxx">
+                                            </div>
+                                        </div>
+                                        <!-- Input Jumlah Donasi -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="jumlah" class="form-label fw-semibold">
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Jumlah Donasi *
+                                                </label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Rp</span>
+                                                    <input type="number" class="form-control" id="jumlah" min="1000" required placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <!-- Input Metode Pembayaran dengan kategori -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="metodePembayaran" class="form-label fw-semibold">
+                                                    <i class="fas fa-credit-card me-1"></i>Metode Pembayaran *
+                                                </label>
+                                                <select class="form-select" id="metodePembayaran" required>
+                                                    <option value="">Pilih Metode Pembayaran</option>
+                                                    <optgroup label="🏦 Transfer Bank">
+                                                        <option value="Transfer Bank - BCA">Transfer Bank - BCA</option>
+                                                        <option value="Transfer Bank - Mandiri">Transfer Bank - Mandiri</option>
+                                                        <option value="Transfer Bank - BRI">Transfer Bank - BRI</option>
+                                                        <option value="Transfer Bank - BNI">Transfer Bank - BNI</option>
+                                                        <option value="Transfer Bank - CIMB Niaga">Transfer Bank - CIMB Niaga</option>
+                                                        <option value="Transfer Bank - Danamon">Transfer Bank - Danamon</option>
+                                                        <option value="Transfer Bank - Permata">Transfer Bank - Permata</option>
+                                                        <option value="Transfer Bank - BTN">Transfer Bank - BTN</option>
+                                                        <option value="Transfer Bank - Lainnya">Transfer Bank - Lainnya</option>
+                                                    </optgroup>
+                                                    <optgroup label="📱 E-Wallet">
+                                                        <option value="GoPay">GoPay</option>
+                                                        <option value="OVO">OVO</option>
+                                                        <option value="DANA">DANA</option>
+                                                        <option value="ShopeePay">ShopeePay</option>
+                                                        <option value="LinkAja">LinkAja</option>
+                                                        <option value="Jenius Pay">Jenius Pay</option>
+                                                        <option value="SeaBank">SeaBank</option>
+                                                        <option value="Flip">Flip</option>
+                                                    </optgroup>
+                                                    <optgroup label="💳 Kartu">
+                                                        <option value="Kartu Kredit - Visa">Kartu Kredit - Visa</option>
+                                                        <option value="Kartu Kredit - Mastercard">Kartu Kredit - Mastercard</option>
+                                                        <option value="Kartu Kredit - JCB">Kartu Kredit - JCB</option>
+                                                        <option value="Kartu Debit - Visa">Kartu Debit - Visa</option>
+                                                        <option value="Kartu Debit - Mastercard">Kartu Debit - Mastercard</option>
+                                                        <option value="Kartu Debit - Maestro">Kartu Debit - Maestro</option>
+                                                    </optgroup>
+                                                    <optgroup label="📲 Digital Payment">
+                                                        <option value="QRIS">QRIS</option>
+                                                        <option value="PayPal">PayPal</option>
+                                                        <option value="Google Pay">Google Pay</option>
+                                                        <option value="Apple Pay">Apple Pay</option>
+                                                        <option value="Samsung Pay">Samsung Pay</option>
+                                                    </optgroup>
+                                                    <optgroup label="💰 Lainnya">
+                                                        <option value="Tunai">Tunai</option>
+                                                        <option value="Cek/Giro">Cek/Giro</option>
+                                                        <option value="Money Order">Money Order</option>
+                                                        <option value="Cryptocurrency">Cryptocurrency</option>
+                                                    </optgroup>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <!-- Input Tanggal Donasi -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="tanggal" class="form-label fw-semibold">
+                                                    <i class="fas fa-calendar me-1"></i>Tanggal Donasi *
+                                                </label>
+                                                <input type="date" class="form-control" id="tanggal" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Input Keterangan -->
+                                    <div class="mb-4">
+                                        <label for="keterangan" class="form-label fw-semibold">
+                                            <i class="fas fa-sticky-note me-1"></i>Keterangan
+                                        </label>
+                                        <textarea class="form-control" id="keterangan" rows="3" placeholder="Keterangan tambahan (opsional)"></textarea>
+                                    </div>
+
+                                    <!-- Input Bukti Pembayaran -->
+                                    <div class="mb-4">
+                                        <label for="buktiPembayaran" class="form-label fw-semibold">
+                                            <i class="fas fa-file-image me-1"></i>Bukti Pembayaran
+                                        </label>
+                                        <input type="file" class="form-control" id="buktiPembayaran" accept="image/*">
+                                        <small class="text-muted">Format: JPG, PNG, GIF. Maksimal 5MB</small>
+                                    </div>
+
+                                    <!-- Input Kategori Donasi -->
+                                    <div class="mb-4">
+                                        <label for="kategori" class="form-label fw-semibold">
+                                            <i class="fas fa-tags me-1"></i>Kategori Donasi
+                                        </label>
+                                        <select class="form-select" id="kategori">
+                                            <option value="umum">Umum</option>
+                                            <option value="pendidikan">Pendidikan</option>
+                                            <option value="kesehatan">Kesehatan</option>
+                                            <option value="bencana_alam">Bencana Alam</option>
+                                            <option value="yatim_piatu">Yatim Piatu</option>
+                                            <option value="lansia">Lansia</option>
+                                            <option value="infrastruktur">Infrastruktur</option>
+                                            <option value="program_sosial">Program Sosial</option>
+                                            <option value="lingkungan">Lingkungan</option>
+                                            <option value="ekonomi_kreatif">Ekonomi Kreatif</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Button Submit dan Reset -->
+                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                        <button type="button" class="btn btn-secondary me-md-2" onclick="resetForm()">
+                                            <i class="fas fa-undo me-1"></i>Reset Form
+                                        </button>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-save me-1"></i>Simpan Donasi
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel Informasi -->
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-info-circle me-2 text-info"></i>Panduan Input
+                                </h5>
+                                <div class="alert alert-info">
+                                    <h6 class="fw-bold">Panduan Input Donasi:</h6>
+                                    <ul class="mb-0 small">
+                                        <li>Pastikan nama donatur sudah benar</li>
+                                        <li>Jumlah minimum donasi Rp 1.000</li>
+                                        <li>Pilih metode pembayaran yang sesuai</li>
+                                        <li>Tanggal harus hari ini atau sebelumnya</li>
+                                        <li>Email dan telepon bersifat opsional</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-check-circle me-2 text-success"></i>Status Donasi
+                                </h5>
+                                <div class="alert alert-success">
+                                    <h6 class="fw-bold">Informasi Status:</h6>
+                                    <p class="mb-0 small">Donasi yang diinput melalui form ini akan berstatus <strong>"Terkonfirmasi"</strong> secara otomatis karena telah diverifikasi oleh admin.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Import Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Fungsi untuk mengecek autentikasi dan role admin
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            // Redirect ke login jika tidak ada token
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            // Cek apakah user adalah admin
+            if (user.role !== 'user') {
+                alert('Akses ditolak. Hanya user yang dapat mengakses halaman ini.');
+                window.location.href = '/dashboard';
+                return;
+            }
+            
+            // Tampilkan info user di navbar
+            document.getElementById('userInfo').textContent = `Halo, ${user.username} (${user.role})`;
+        }
+
+        // Fungsi logout - hapus token dan redirect ke login
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        // Fungsi untuk set tanggal hari ini sebagai default dan maksimal
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('tanggal');
+            dateInput.value = today;
+            dateInput.max = today; // Set maksimal tanggal ke hari ini
+        }
+
+        // Fungsi untuk reset form ke kondisi awal
+        function resetForm() {
+            document.getElementById('donationForm').reset();
+            setDefaultDate();
+        }
+
+        // Event listener untuk submit form donasi
+        document.getElementById('donationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Buat FormData untuk handle file upload
+            const formData = new FormData();
+            formData.append('nama', document.getElementById('nama').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('telepon', document.getElementById('telepon').value);
+            formData.append('jumlah', document.getElementById('jumlah').value);
+            formData.append('metodePembayaran', document.getElementById('metodePembayaran').value);
+            formData.append('tanggal', document.getElementById('tanggal').value);
+            formData.append('keterangan', document.getElementById('keterangan').value);
+            formData.append('kategori', document.getElementById('kategori').value);
+            formData.append('status', 'confirmed');
+            
+            // Tambahkan file jika ada
+            const fileInput = document.getElementById('buktiPembayaran');
+            if (fileInput.files[0]) {
+                formData.append('buktiPembayaran', fileInput.files[0]);
+            }
+            
+            // Validasi form
+            if (!formData.get('nama') || !formData.get('jumlah') || !formData.get('metodePembayaran') || !formData.get('tanggal')) {
+                alert('Mohon lengkapi semua field yang wajib diisi (*)');
+                return;
+            }
+            
+            // Validasi jumlah minimum
+            if (parseInt(formData.get('jumlah')) < 1000) {
+                alert('Jumlah donasi minimum adalah Rp 1.000');
+                return;
+            }
+            
+            // Validasi tanggal
+            const selectedDate = new Date(formData.get('tanggal'));
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+            
+            if (selectedDate > today) {
+                alert('Tanggal donasi tidak boleh di masa depan');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/donations', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData // Gunakan FormData, bukan JSON
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Donasi berhasil disimpan!');
+                    resetForm();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menyimpan donasi');
+            }
+        });
+
+        // Inisialisasi halaman - cek auth dan set default date
+        checkAuth();
+        setDefaultDate();
+    </script>
+</body>
+</html>

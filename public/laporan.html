@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan - Yayasan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Libraries untuk export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+        }
+        .navbar { background: linear-gradient(135deg, var(--primary), #34495e) !important; }
+        .sidebar { background: #ecf0f1 !important; min-height: calc(100vh - 56px); }
+        .nav-link { color: var(--primary) !important; border-radius: 8px; transition: all 0.3s; }
+        .nav-link:hover { background: var(--accent); color: white !important; }
+        .nav-link.active { background: var(--primary); color: white !important; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .main-content { background: #f8f9fa; min-height: calc(100vh - 56px); padding: 20px; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container canvas { max-height: 300px !important; }
+        .budget-progress { margin-bottom: 15px; }
+        .budget-progress .progress { height: 25px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-handshake me-2"></i>Dashboard Yayasan</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-light" onclick="logout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-4 px-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/riwayat"><i class="fas fa-history me-2"></i>Riwayat Donasi</a></li>
+                        <li class="nav-item" id="adminMenu1" style="display: none;"><a class="nav-link" href="/input-donasi"><i class="fas fa-plus me-2"></i>Input Donasi</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/budget"><i class="fas fa-calculator me-2"></i>Budget Planning</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/expenses"><i class="fas fa-receipt me-2"></i>Pengeluaran</a></li>
+                        <li class="nav-item"><a class="nav-link active" href="/laporan"><i class="fas fa-chart-line me-2"></i>Laporan</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h1 class="h2 mb-1">Laporan Keuangan</h1>
+                                <p class="text-muted mb-0">Generate dan lihat laporan keuangan lengkap</p>
+                            </div>
+                            <div class="dropdown" id="exportDropdown" style="display: none;">
+                                <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-download me-1"></i>Export
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="exportToPDF()"><i class="fas fa-file-pdf me-2 text-danger"></i>Laporan Lengkap (PDF)</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportDonationsToExcel()"><i class="fas fa-file-excel me-2 text-success"></i>Data Donasi (Excel)</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportExpensesToExcel()"><i class="fas fa-file-excel me-2 text-success"></i>Data Pengeluaran (Excel)</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportBudgetToExcel()"><i class="fas fa-file-excel me-2 text-success"></i>Data Budget (Excel)</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Period -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Periode Laporan</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="startMonth" class="form-label">Bulan Mulai</label>
+                                        <input type="month" class="form-control" id="startMonth">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="endMonth" class="form-label">Bulan Akhir</label>
+                                        <input type="month" class="form-control" id="endMonth">
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary mt-3" onclick="generateReport()">
+                                    <i class="fas fa-sync me-1"></i>Generate Laporan
+                                </button>
+                                <button class="btn btn-secondary mt-2" onclick="testFunction()">
+                                    <i class="fas fa-bug me-1"></i>Test Function
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card text-white bg-success">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Donasi</h6>
+                                <h4 id="totalDonations">Rp 0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-danger">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Pengeluaran</h6>
+                                <h4 id="totalExpenses">Rp 0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-primary">
+                            <div class="card-body">
+                                <h6 class="card-title">Saldo</h6>
+                                <h4 id="balance">Rp 0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-warning">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Budget</h6>
+                                <h4 id="totalBudget">Rp 0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-secondary">
+                            <div class="card-body">
+                                <h6 class="card-title">Budget Terpakai</h6>
+                                <h4 id="usedBudget">Rp 0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-info">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Donatur</h6>
+                                <h4 id="totalDonors">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Trend Donasi vs Pengeluaran</h5>
+                                <div class="chart-container">
+                                    <canvas id="trendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Budget vs Realisasi</h5>
+                                <div class="chart-container">
+                                    <canvas id="budgetChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Analysis -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-chart-pie me-2 text-warning"></i>Analisis Budget</h5>
+                                <div id="budgetAnalysis">
+                                    <div class="text-center py-4">
+                                        <p>Klik "Generate Laporan" untuk melihat analisis budget</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Report -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Laporan Detail</h5>
+                        <div id="detailedReport">
+                            <div class="text-center py-4">
+                                <p>Klik "Generate Laporan" untuk melihat laporan detail</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Simple, direct function definitions
+let trendChart, budgetChart;
+let currentReportData = null;
+let isAdmin = false;
+
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token) {
+        window.location.href = '/';
+        return;
+    }
+    
+    document.getElementById('userInfo').textContent = `Halo, ${user.username} (${user.role})`;
+    isAdmin = user.role === 'user';
+
+    if (isAdmin) {
+        document.getElementById('adminMenu1').style.display = 'block';
+        document.getElementById('exportDropdown').style.display = 'block';
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount || 0);
+}
+
+function setDefaultPeriod() {
+    const now = new Date();
+    const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const startMonth = sixMonthsAgo.getFullYear() + '-' + String(sixMonthsAgo.getMonth() + 1).padStart(2, '0');
+    
+    document.getElementById('startMonth').value = startMonth;
+    document.getElementById('endMonth').value = currentMonth;
+}
+
+function testFunction() {
+    console.log('Test function called');
+    console.log('generateReport type:', typeof generateReport);
+    if (typeof generateReport === 'function') {
+        alert('✅ generateReport function is defined and ready!');
+    } else {
+        alert('❌ generateReport function is NOT defined!');
+    }
+}
+
+async function generateReport() {
+    console.log('generateReport function called');
+    
+    const startMonth = document.getElementById('startMonth').value;
+    const endMonth = document.getElementById('endMonth').value;
+    
+    if (!startMonth || !endMonth) {
+        alert('Mohon pilih periode laporan');
+        return;
+    }
+    
+    if (startMonth > endMonth) {
+        alert('Bulan mulai tidak boleh lebih besar dari bulan akhir');
+        return;
+    }
+    
+    // Show loading state
+    const generateBtn = document.querySelector('button[onclick="generateReport()"]');
+    const originalText = generateBtn.innerHTML;
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    generateBtn.disabled = true;
+    
+    try {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            throw new Error('Token tidak ditemukan. Silakan login ulang.');
+        }
+        
+        const startDate = startMonth + '-01';
+        const endDate = new Date(endMonth + '-01');
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0);
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        console.log('Fetching data for date range:', { startDate, endDateStr });
+        
+        // Fetch all data
+        const [donationResponse, expenseResponse, budgetResponse] = await Promise.all([
+            fetch(`/api/donations?startDate=${startDate}&endDate=${endDateStr}&limit=1000`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`/api/expenses?startDate=${startDate}&endDate=${endDateStr}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`/api/budgets`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
+        
+        if (!donationResponse.ok) throw new Error('Gagal mengambil data donasi');
+        if (!expenseResponse.ok) throw new Error('Gagal mengambil data pengeluaran');
+        if (!budgetResponse.ok) throw new Error('Gagal mengambil data budget');
+        
+        const donationData = await donationResponse.json();
+        const expenseData = await expenseResponse.json();
+        const budgetData = await budgetResponse.json();
+        
+        console.log('Data received successfully');
+        
+        currentReportData = processReportData(donationData, expenseData, budgetData);
+        
+        updateSummary(currentReportData.summary);
+        updateTrendChart(currentReportData.trendData);
+        updateBudgetChart(currentReportData.budgetData);
+        displayBudgetAnalysis(currentReportData.budgetAnalysis);
+        displayDetailedReport(currentReportData.detailed);
+        
+        alert('Laporan berhasil di-generate!');
+        
+    } catch (error) {
+        console.error('Error generating report:', error);
+        alert('Gagal generate laporan: ' + error.message);
+        
+        document.getElementById('budgetAnalysis').innerHTML = '<div class="text-center text-danger">Gagal memuat analisis budget</div>';
+        document.getElementById('detailedReport').innerHTML = '<div class="text-center text-danger">Gagal memuat laporan detail</div>';
+    } finally {
+        generateBtn.innerHTML = originalText;
+        generateBtn.disabled = false;
+    }
+}
+
+function processReportData(donationData, expenseData, budgetResponse) {
+    const donations = donationData.donations || [];
+    const expenses = expenseData.expenses || [];
+    const budgets = budgetResponse || [];
+    
+    // Summary calculations
+    const totalDonations = donations.reduce((sum, d) => sum + (d.jumlah || 0), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.jumlah || 0), 0);
+    const balance = totalDonations - totalExpenses;
+    const totalDonors = donations.length;
+    
+    // Budget calculations
+    const totalBudget = budgets.reduce((sum, b) => sum + (b.anggaran || 0), 0);
+    const usedBudget = budgets.reduce((sum, b) => sum + (b.terpakai || 0), 0);
+    
+    // Trend data
+    const monthlyDonations = {};
+    const monthlyExpenses = {};
+    
+    donations.forEach(d => {
+        if (d.tanggal) {
+            const month = new Date(d.tanggal).toISOString().slice(0, 7);
+            monthlyDonations[month] = (monthlyDonations[month] || 0) + (d.jumlah || 0);
+        }
+    });
+    
+    expenses.forEach(e => {
+        if (e.tanggal) {
+            const month = new Date(e.tanggal).toISOString().slice(0, 7);
+            monthlyExpenses[month] = (monthlyExpenses[month] || 0) + (e.jumlah || 0);
+        }
+    });
+    
+    const allMonths = [...new Set([...Object.keys(monthlyDonations), ...Object.keys(monthlyExpenses)])].sort();
+    
+    const trendData = {
+        labels: allMonths.map(month => {
+            const date = new Date(month + '-01');
+            return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+        }),
+        donations: allMonths.map(month => monthlyDonations[month] || 0),
+        expenses: allMonths.map(month => monthlyExpenses[month] || 0)
+    };
+    
+    // Budget vs Realisasi data
+    const budgetCategories = {};
+    const expenseCategories = {};
+    
+    budgets.forEach(b => {
+        if (b.kategori) {
+            budgetCategories[b.kategori] = (budgetCategories[b.kategori] || 0) + (b.anggaran || 0);
+        }
+    });
+    
+    expenses.forEach(e => {
+        if (e.kategori) {
+            expenseCategories[e.kategori] = (expenseCategories[e.kategori] || 0) + (e.jumlah || 0);
+        }
+    });
+    
+    const categories = [...new Set([...Object.keys(budgetCategories), ...Object.keys(expenseCategories)])];
+    
+    const budgetChartData = {
+        labels: categories,
+        budgetValues: categories.map(cat => budgetCategories[cat] || 0),
+        actualValues: categories.map(cat => expenseCategories[cat] || 0)
+    };
+    
+    // Budget analysis
+    const budgetAnalysis = budgets.map(budget => {
+        const anggaran = budget.anggaran || 0;
+        const terpakai = budget.terpakai || 0;
+        const percentage = anggaran > 0 ? (terpakai / anggaran) * 100 : 0;
+        const remaining = anggaran - terpakai;
+        const status = percentage >= 90 ? 'danger' : percentage >= 70 ? 'warning' : 'success';
+        
+        return {
+            ...budget,
+            percentage: Math.round(percentage),
+            remaining,
+            status
+        };
+    });
+    
+    // Top data
+    const donorMap = {};
+    donations.forEach(d => {
+        if (d.nama) {
+            donorMap[d.nama] = (donorMap[d.nama] || 0) + (d.jumlah || 0);
+        }
+    });
+    
+    const topDonors = Object.entries(donorMap)
+        .map(([nama, total]) => ({ nama, total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+    
+    const topExpenses = expenses
+        .filter(e => e.jumlah)
+        .sort((a, b) => (b.jumlah || 0) - (a.jumlah || 0))
+        .slice(0, 5);
+    
+    return {
+        summary: { 
+            totalDonations, 
+            totalExpenses, 
+            balance, 
+            totalDonors,
+            totalBudget,
+            usedBudget,
+            remainingBudget: totalBudget - usedBudget
+        },
+        trendData,
+        budgetData: budgetChartData,
+        budgetAnalysis,
+        detailed: { topDonors, topExpenses },
+        rawData: { donations, expenses, budgets }
+    };
+}
+
+function updateSummary(summary) {
+    document.getElementById('totalDonations').textContent = formatCurrency(summary.totalDonations);
+    document.getElementById('totalExpenses').textContent = formatCurrency(summary.totalExpenses);
+    document.getElementById('balance').textContent = formatCurrency(summary.balance);
+    document.getElementById('totalDonors').textContent = summary.totalDonors || 0;
+    document.getElementById('totalBudget').textContent = formatCurrency(summary.totalBudget);
+    document.getElementById('usedBudget').textContent = formatCurrency(summary.usedBudget);
+}
+
+function updateTrendChart(data) {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    
+    if (trendChart) {
+        trendChart.destroy();
+    }
+    
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels || [],
+            datasets: [
+                {
+                    label: 'Donasi',
+                    data: data.donations || [],
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Pengeluaran',
+                    data: data.expenses || [],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrency(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateBudgetChart(data) {
+    const ctx = document.getElementById('budgetChart').getContext('2d');
+    
+    if (budgetChart) {
+        budgetChart.destroy();
+    }
+    
+    budgetChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels || [],
+            datasets: [
+                {
+                    label: 'Budget',
+                    data: data.budgetValues || [],
+                    backgroundColor: 'rgba(52, 152, 219, 0.8)',
+                    borderColor: '#3498db',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Realisasi',
+                    data: data.actualValues || [],
+                    backgroundColor: 'rgba(231, 76, 60, 0.8)',
+                    borderColor: '#e74c3c',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrency(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function displayBudgetAnalysis(budgetAnalysis) {
+    const container = document.getElementById('budgetAnalysis');
+    
+    if (!budgetAnalysis || budgetAnalysis.length === 0) {
+        container.innerHTML = '<div class="text-center">Belum ada data budget</div>';
+        return;
+    }
+    
+    let html = '<div class="row">';
+    
+    budgetAnalysis.forEach(budget => {
+        const progressClass = budget.status === 'danger' ? 'bg-danger' : 
+                           budget.status === 'warning' ? 'bg-warning' : 'bg-success';
+        
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="budget-progress">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">${budget.kategori || 'N/A'}</h6>
+                        <span class="badge bg-secondary">${budget.periode || 'N/A'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Terpakai: ${formatCurrency(budget.terpakai)}</small>
+                        <small>Budget: ${formatCurrency(budget.anggaran)}</small>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar ${progressClass}" style="width: ${Math.min(budget.percentage || 0, 100)}%">
+                            ${budget.percentage || 0}%
+                        </div>
+                    </div>
+                    <small class="text-muted">Sisa: ${formatCurrency(budget.remaining)}</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function displayDetailedReport(detailed) {
+    const container = document.getElementById('detailedReport');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-trophy me-2 text-warning"></i>Top 5 Donatur Terbesar</h6>
+                <ul class="list-group">
+    `;
+    
+    if (detailed.topDonors && detailed.topDonors.length > 0) {
+        detailed.topDonors.forEach((donor, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+            html += `<li class="list-group-item d-flex justify-content-between">
+                <span>${medal} ${donor.nama || 'N/A'}</span>
+                <strong>${formatCurrency(donor.total)}</strong>
+            </li>`;
+        });
+    } else {
+        html += `<li class="list-group-item">Tidak ada data donatur</li>`;
+    }
+    
+    html += `
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-money-bill-wave me-2 text-danger"></i>Pengeluaran Terbesar</h6>
+                <ul class="list-group">
+    `;
+    
+    if (detailed.topExpenses && detailed.topExpenses.length > 0) {
+        detailed.topExpenses.forEach(expense => {
+            html += `<li class="list-group-item d-flex justify-content-between">
+                <span>${expense.deskripsi || 'N/A'}</span>
+                <strong>${formatCurrency(expense.jumlah)}</strong>
+            </li>`;
+        });
+    } else {
+        html += `<li class="list-group-item">Tidak ada data pengeluaran</li>`;
+    }
+    
+    html += `
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Export Functions with better error handling (only for admin)
+async function exportToPDF() {
+    if (!isAdmin) {
+        alert('Akses ditolak. Hanya user yang dapat export laporan.');
+        return;
+    }
+    
+    if (!currentReportData) {
+        alert('Mohon generate laporan terlebih dahulu');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let yPosition = 20;
+        
+        // Helper function to add new page if needed
+        function checkNewPage(neededSpace = 20) {
+            if (yPosition + neededSpace > 280) {
+                doc.addPage();
+                yPosition = 20;
+            }
+        }
+        
+        // Helper function to safely get text
+        function safeText(text, maxLength = 50) {
+            if (!text) return 'N/A';
+            return String(text).substring(0, maxLength);
+        }
+        
+        // Header
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('LAPORAN KEUANGAN YAYASAN', 105, yPosition, { align: 'center' });
+        yPosition += 15;
+        
+        const startMonth = document.getElementById('startMonth').value;
+        const endMonth = document.getElementById('endMonth').value;
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Periode: ${startMonth} s/d ${endMonth}`, 105, yPosition, { align: 'center' });
+        yPosition += 8;
+        doc.text(`Tanggal Generate: ${new Date().toLocaleDateString('id-ID')}`, 105, yPosition, { align: 'center' });
+        yPosition += 20;
+        
+        // Summary Section
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('RINGKASAN KEUANGAN', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        const summary = currentReportData.summary;
+        doc.text(`Total Donasi: ${formatCurrency(summary.totalDonations)}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Total Pengeluaran: ${formatCurrency(summary.totalExpenses)}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Saldo: ${formatCurrency(summary.balance)}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Total Donatur: ${summary.totalDonors} orang`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Total Budget: ${formatCurrency(summary.totalBudget)}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Budget Terpakai: ${formatCurrency(summary.usedBudget)}`, 20, yPosition);
+        yPosition += 15;
+        
+        // Top Donors Section
+        checkNewPage(40);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('TOP 5 DONATUR TERBESAR', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        if (currentReportData.detailed.topDonors && currentReportData.detailed.topDonors.length > 0) {
+            currentReportData.detailed.topDonors.forEach((donor, index) => {
+                const medal = index === 0 ? '1.' : index === 1 ? '2.' : index === 2 ? '3.' : `${index + 1}.`;
+                doc.text(`${medal} ${safeText(donor.nama, 30)} - ${formatCurrency(donor.total)}`, 25, yPosition);
+                yPosition += 6;
+            });
+        } else {
+            doc.text('Tidak ada data donatur', 25, yPosition);
+            yPosition += 6;
+        }
+        yPosition += 10;
+        
+        // Budget Analysis Section
+        checkNewPage(40);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('ANALISIS BUDGET', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        if (currentReportData.budgetAnalysis && currentReportData.budgetAnalysis.length > 0) {
+            currentReportData.budgetAnalysis.forEach(budget => {
+                checkNewPage(15);
+                doc.text(`${safeText(budget.kategori)} (${safeText(budget.periode)})`, 25, yPosition);
+                yPosition += 5;
+                doc.text(`  Budget: ${formatCurrency(budget.anggaran)}`, 25, yPosition);
+                yPosition += 5;
+                doc.text(`  Terpakai: ${formatCurrency(budget.terpakai)} (${budget.percentage || 0}%)`, 25, yPosition);
+                yPosition += 5;
+                doc.text(`  Sisa: ${formatCurrency(budget.remaining)}`, 25, yPosition);
+                yPosition += 8;
+            });
+        } else {
+            doc.text('Tidak ada data budget', 25, yPosition);
+            yPosition += 6;
+        }
+        yPosition += 10;
+        
+        // Donations Detail Section
+        checkNewPage(40);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('DETAIL DONASI', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        
+        // Table headers
+        doc.text('Tanggal', 20, yPosition);
+        doc.text('Nama', 45, yPosition);
+        doc.text('Jumlah', 100, yPosition);
+        doc.text('Metode', 130, yPosition);
+        doc.text('Status', 170, yPosition);
+        yPosition += 5;
+        
+        // Draw line under headers
+        doc.line(20, yPosition, 190, yPosition);
+        yPosition += 5;
+        
+        if (currentReportData.rawData.donations && currentReportData.rawData.donations.length > 0) {
+            currentReportData.rawData.donations.slice(0, 20).forEach(donation => {
+                checkNewPage(8);
+                doc.text(donation.tanggal ? new Date(donation.tanggal).toLocaleDateString('id-ID') : 'N/A', 20, yPosition);
+                doc.text(safeText(donation.nama, 20), 45, yPosition);
+                doc.text(formatCurrency(donation.jumlah), 100, yPosition);
+                doc.text(safeText(donation.metodePembayaran, 15), 130, yPosition);
+                doc.text(safeText(donation.status), 170, yPosition);
+                yPosition += 5;
+            });
+            
+            if (currentReportData.rawData.donations.length > 20) {
+                yPosition += 5;
+                doc.text(`... dan ${currentReportData.rawData.donations.length - 20} donasi lainnya`, 20, yPosition);
+                yPosition += 5;
+            }
+        } else {
+            doc.text('Tidak ada data donasi', 20, yPosition);
+            yPosition += 5;
+        }
+        yPosition += 15;
+        
+        // Expenses Detail Section
+        checkNewPage(40);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('DETAIL PENGELUARAN', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        
+        // Table headers
+        doc.text('Tanggal', 20, yPosition);
+        doc.text('Kategori', 45, yPosition);
+        doc.text('Deskripsi', 80, yPosition);
+        doc.text('Jumlah', 130, yPosition);
+        yPosition += 5;
+        
+        // Draw line under headers
+        doc.line(20, yPosition, 190, yPosition);
+        yPosition += 5;
+        
+        if (currentReportData.rawData.expenses && currentReportData.rawData.expenses.length > 0) {
+            currentReportData.rawData.expenses.slice(0, 20).forEach(expense => {
+                checkNewPage(8);
+                doc.text(expense.tanggal ? new Date(expense.tanggal).toLocaleDateString('id-ID') : 'N/A', 20, yPosition);
+                doc.text(safeText(expense.kategori, 15), 45, yPosition);
+                doc.text(safeText(expense.deskripsi, 25), 80, yPosition);
+                doc.text(formatCurrency(expense.jumlah), 130, yPosition);
+                yPosition += 5;
+            });
+            
+            if (currentReportData.rawData.expenses.length > 20) {
+                yPosition += 5;
+                doc.text(`... dan ${currentReportData.rawData.expenses.length - 20} pengeluaran lainnya`, 20, yPosition);
+                yPosition += 5;
+            }
+        } else {
+            doc.text('Tidak ada data pengeluaran', 20, yPosition);
+            yPosition += 5;
+        }
+        
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.text(`Halaman ${i} dari ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text('Generated by Yayasan Dashboard System', 105, 295, { align: 'center' });
+        }
+        
+        doc.save(`Laporan-Lengkap-${startMonth}-${endMonth}.pdf`);
+        alert('Laporan lengkap berhasil di-export ke PDF!');
+        
+    } catch (error) {
+        console.error('Error exporting PDF:', error);
+        alert('Gagal export PDF: ' + error.message);
+    }
+}
+
+async function exportDonationsToExcel() {
+    if (!isAdmin) {
+        alert('Akses ditolak. Hanya user yang dapat export laporan.');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/donations?limit=10000', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        const donations = data.donations || [];
+        
+        const excelData = donations.map(donation => ({
+            'Tanggal': donation.tanggal ? new Date(donation.tanggal).toLocaleDateString('id-ID') : 'N/A',
+            'Nama Donatur': donation.nama || 'N/A',
+            'Email': donation.email || '-',
+            'Telepon': donation.telepon || '-',
+            'Jumlah': donation.jumlah || 0,
+            'Metode Pembayaran': donation.metodePembayaran || 'N/A',
+            'Kategori': donation.kategori || 'N/A',
+            'Status': donation.status || 'N/A',
+            'Keterangan': donation.keterangan || '-'
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data Donasi');
+        
+        XLSX.writeFile(wb, `Data-Donasi-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+        console.error('Error exporting donations:', error);
+        alert('Gagal export data donasi: ' + error.message);
+    }
+}
+
+async function exportExpensesToExcel() {
+    if (!isAdmin) {
+        alert('Akses ditolak. Hanya user yang dapat export laporan.');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/expenses', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        const expenses = data.expenses || [];
+        
+        const excelData = expenses.map(expense => ({
+            'Tanggal': expense.tanggal ? new Date(expense.tanggal).toLocaleDateString('id-ID') : 'N/A',
+            'Kategori': expense.kategori || 'N/A',
+            'Deskripsi': expense.deskripsi || 'N/A',
+            'Jumlah': expense.jumlah || 0,
+            'Budget Terkait': expense.budgetInfo || '-'
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data Pengeluaran');
+        
+        XLSX.writeFile(wb, `Data-Pengeluaran-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+        console.error('Error exporting expenses:', error);
+        alert('Gagal export data pengeluaran: ' + error.message);
+    }
+}
+
+async function exportBudgetToExcel() {
+    if (!isAdmin) {
+        alert('Akses ditolak. Hanya user yang dapat export laporan.');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/budgets', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const budgets = await response.json();
+        
+        const excelData = budgets.map(budget => ({
+            'Kategori': budget.kategori || 'N/A',
+            'Periode': budget.periode || 'N/A',
+            'Anggaran': budget.anggaran || 0,
+            'Terpakai': budget.terpakai || 0,
+            'Sisa': (budget.anggaran || 0) - (budget.terpakai || 0),
+            'Persentase Terpakai': Math.round(((budget.terpakai || 0) / (budget.anggaran || 1)) * 100) + '%',
+            'Status': budget.status || 'N/A'
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data Budget');
+        
+        XLSX.writeFile(wb, `Data-Budget-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+        console.error('Error exporting budget:', error);
+        alert('Gagal export data budget: ' + error.message);
+    }
+}
+
+// Initialize when page loads
+checkAuth();
+setDefaultPeriod();
+
+console.log('All functions loaded. generateReport type:', typeof generateReport);
+</script>
+</body>
+</html>
