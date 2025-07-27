@@ -99,9 +99,6 @@
                                 <button class="btn btn-primary mt-3" onclick="generateReport()">
                                     <i class="fas fa-sync me-1"></i>Generate Laporan
                                 </button>
-                                <button class="btn btn-secondary mt-2" onclick="testFunction()">
-                                    <i class="fas fa-bug me-1"></i>Test Function
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -257,16 +254,6 @@ function setDefaultPeriod() {
     
     document.getElementById('startMonth').value = startMonth;
     document.getElementById('endMonth').value = currentMonth;
-}
-
-function testFunction() {
-    console.log('Test function called');
-    console.log('generateReport type:', typeof generateReport);
-    if (typeof generateReport === 'function') {
-        alert('✅ generateReport function is defined and ready!');
-    } else {
-        alert('❌ generateReport function is NOT defined!');
-    }
 }
 
 async function generateReport() {
@@ -466,7 +453,11 @@ function processReportData(donationData, expenseData, budgetResponse) {
         trendData,
         budgetData: budgetChartData,
         budgetAnalysis,
-        detailed: { topDonors, topExpenses },
+        detailed: { 
+            topDonors, 
+            topExpenses,
+            allDonations: donations  // Add this line
+        },
         rawData: { donations, expenses, budgets }
     };
 }
@@ -488,7 +479,7 @@ function updateTrendChart(data) {
     }
     
     trendChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: data.labels || [],
             datasets: [
@@ -496,15 +487,13 @@ function updateTrendChart(data) {
                     label: 'Donasi',
                     data: data.donations || [],
                     borderColor: '#27ae60',
-                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                    tension: 0.1
+                    backgroundColor: 'rgba(39, 174, 96, 0.8)',
                 },
                 {
                     label: 'Pengeluaran',
                     data: data.expenses || [],
                     borderColor: '#e74c3c',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                    tension: 0.1
+                    backgroundColor: 'rgba(231, 76, 60, 0.8)',
                 }
             ]
         },
@@ -612,51 +601,54 @@ function displayBudgetAnalysis(budgetAnalysis) {
 
 function displayDetailedReport(detailed) {
     const container = document.getElementById('detailedReport');
-    
+
     let html = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6><i class="fas fa-trophy me-2 text-warning"></i>Top 5 Donatur Terbesar</h6>
-                <ul class="list-group">
+        <h6>Data Donasi Periode Terpilih</h6>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Nama</th>
+                        <th>Email</th>
+                        <th>Telepon</th>
+                        <th>Jumlah</th>
+                        <th>Metode Pembayaran</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
+
+    // Use currentReportData.rawData.donations instead of detailed.allDonations
+    const donations = currentReportData?.rawData?.donations || [];
     
-    if (detailed.topDonors && detailed.topDonors.length > 0) {
-        detailed.topDonors.forEach((donor, index) => {
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-            html += `<li class="list-group-item d-flex justify-content-between">
-                <span>${medal} ${donor.nama || 'N/A'}</span>
-                <strong>${formatCurrency(donor.total)}</strong>
-            </li>`;
+    if (donations && donations.length > 0) {
+        donations.forEach((donation, index) => {
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${donation.tanggal ? new Date(donation.tanggal).toLocaleDateString('id-ID') : 'N/A'}</td>
+                    <td>${donation.nama || 'N/A'}</td>
+                    <td>${donation.email || 'N/A'}</td>
+                    <td>${donation.telepon || 'N/A'}</td>
+                    <td>${formatCurrency(donation.jumlah)}</td>
+                    <td>${donation.metodePembayaran || 'N/A'}</td>
+                    <td>${donation.status || 'N/A'}</td>
+                </tr>
+            `;
         });
     } else {
-        html += `<li class="list-group-item">Tidak ada data donatur</li>`;
+        html += `<tr><td colspan="8">Tidak ada data donasi pada periode ini.</td></tr>`;
     }
-    
+
     html += `
-                </ul>
-            </div>
-            <div class="col-md-6">
-                <h6><i class="fas fa-money-bill-wave me-2 text-danger"></i>Pengeluaran Terbesar</h6>
-                <ul class="list-group">
-    `;
-    
-    if (detailed.topExpenses && detailed.topExpenses.length > 0) {
-        detailed.topExpenses.forEach(expense => {
-            html += `<li class="list-group-item d-flex justify-content-between">
-                <span>${expense.deskripsi || 'N/A'}</span>
-                <strong>${formatCurrency(expense.jumlah)}</strong>
-            </li>`;
-        });
-    } else {
-        html += `<li class="list-group-item">Tidak ada data pengeluaran</li>`;
-    }
-    
-    html += `
-                </ul>
-            </div>
+                </tbody>
+            </table>
         </div>
     `;
-    
+
     container.innerHTML = html;
 }
 
@@ -783,6 +775,12 @@ async function exportToPDF() {
         doc.text('DETAIL DONASI', 20, yPosition);
         yPosition += 10;
         
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        
+        // Table headers
+        doc.text('Tanggal', 20, yPosition);
+        doc.text('Nama', 45, yPosition);
         doc.setFontSize(8);
         doc.setFont(undefined, 'normal');
         
