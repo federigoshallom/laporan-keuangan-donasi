@@ -255,7 +255,6 @@ function setDefaultPeriod() {
     document.getElementById('startMonth').value = startMonth;
     document.getElementById('endMonth').value = currentMonth;
 }
-
 async function generateReport() {
     console.log('generateReport function called');
     
@@ -615,7 +614,6 @@ function displayDetailedReport(detailed) {
                         <th>Telepon</th>
                         <th>Jumlah</th>
                         <th>Metode Pembayaran</th>
-                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -635,12 +633,11 @@ function displayDetailedReport(detailed) {
                     <td>${donation.telepon || 'N/A'}</td>
                     <td>${formatCurrency(donation.jumlah)}</td>
                     <td>${donation.metodePembayaran || 'N/A'}</td>
-                    <td>${donation.status || 'N/A'}</td>
                 </tr>
             `;
         });
     } else {
-        html += `<tr><td colspan="8">Tidak ada data donasi pada periode ini.</td></tr>`;
+        html += `<tr><td colspan="7">Tidak ada data donasi pada periode ini.</td></tr>`;
     }
 
     html += `
@@ -789,7 +786,6 @@ async function exportToPDF() {
         doc.text('Nama', 45, yPosition);
         doc.text('Jumlah', 100, yPosition);
         doc.text('Metode', 130, yPosition);
-        doc.text('Status', 170, yPosition);
         yPosition += 5;
         
         // Draw line under headers
@@ -803,7 +799,6 @@ async function exportToPDF() {
                 doc.text(safeText(donation.nama, 20), 45, yPosition);
                 doc.text(formatCurrency(donation.jumlah), 100, yPosition);
                 doc.text(safeText(donation.metodePembayaran, 15), 130, yPosition);
-                doc.text(safeText(donation.status), 170, yPosition);
                 yPosition += 5;
             });
             
@@ -900,7 +895,6 @@ async function exportDonationsToExcel() {
             'Jumlah': donation.jumlah || 0,
             'Metode Pembayaran': donation.metodePembayaran || 'N/A',
             'Kategori': donation.kategori || 'N/A',
-            'Status': donation.status || 'N/A',
             'Keterangan': donation.keterangan || '-'
         }));
         

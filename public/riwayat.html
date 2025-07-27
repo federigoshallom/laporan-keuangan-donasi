@@ -23,9 +23,6 @@
         .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .main-content { background: #f8f9fa; min-height: calc(100vh - 56px); padding: 20px; }
         .table thead th { background: var(--primary); color: white; }
-        .status-pending { background-color: #ffc107 !important; }
-        .status-confirmed { background-color: #198754 !important; }
-        .status-rejected { background-color: #dc3545 !important; }
     </style>
 </head>
 <body>
@@ -80,15 +77,6 @@
                                     <div class="col-md-2">
                                         <label class="form-label">Cari Nama</label>
                                         <input type="text" class="form-control" id="searchName" placeholder="Nama donatur">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Status</label>
-                                        <select class="form-select" id="searchStatus">
-                                            <option value="">Semua Status</option>
-                                            <option value="pending">Pending</option>
-                                            <option value="confirmed">Terkonfirmasi</option>
-                                            <option value="rejected">Ditolak</option>
-                                        </select>
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">Bulan</label>
@@ -152,13 +140,12 @@
                                         <th>Metode</th>
                                         <th>Kategori</th>
                                         <th>Bukti</th>
-                                        <th>Status</th>
                                         <th id="actionHeader" style="display: none;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="donationTableBody">
                                     <tr>
-                                        <td colspan="10" class="text-center py-4">
+                                        <td colspan="9" class="text-center py-4">
                                             <div class="spinner-border text-primary"></div>
                                             <p class="mt-2 text-muted">Memuat data...</p>
                                         </td>
@@ -211,14 +198,6 @@
                                 <option value="OVO">OVO</option>
                                 <option value="DANA">DANA</option>
                                 <option value="Tunai">Tunai</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" id="editStatus" required>
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Terkonfirmasi</option>
-                                <option value="rejected">Ditolak</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -310,7 +289,7 @@
             } catch (error) {
                 console.error('Error loading donations:', error);
                 document.getElementById('donationTableBody').innerHTML = 
-                    '<tr><td colspan="10" class="text-center text-danger">Gagal memuat data</td></tr>';
+                    '<tr><td colspan="9" class="text-center text-danger">Gagal memuat data</td></tr>';
             }
         }
 
@@ -318,7 +297,7 @@
             const tbody = document.getElementById('donationTableBody');
             
             if (donations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center">Tidak ada data</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data</td></tr>';
                 return;
             }
             
@@ -342,21 +321,6 @@
                             '<span class="text-muted">Tidak ada</span>'
                         }
                     </td>
-                    <td>
-                        <span class="badge status-${donation.status}">
-                            ${getStatusText(donation.status)}
-                        </span>
-                        ${isAdmin && donation.status === 'pending' ? `
-                            <div class="mt-1">
-                                <button class="btn btn-xs btn-success me-1" onclick="quickUpdateStatus('${donation._id}', 'confirmed')" title="Konfirmasi">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn btn-xs btn-danger" onclick="quickUpdateStatus('${donation._id}', 'rejected')" title="Tolak">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        ` : ''}
-                    </td>
                     ${isAdmin ? `
                         <td>
                             <button class="btn btn-sm btn-warning me-1" onclick="editDonation('${donation._id}')">
@@ -369,41 +333,6 @@
                     ` : ''}
                 </tr>
             `).join('');
-        }
-
-        function getStatusText(status) {
-            switch(status) {
-                case 'pending': return 'Pending';
-                case 'confirmed': return 'Terkonfirmasi';
-                case 'rejected': return 'Ditolak';
-                default: return status;
-            }
-        }
-
-        async function quickUpdateStatus(id, status) {
-            const statusText = getStatusText(status);
-            if (!confirm(`Yakin ingin mengubah status menjadi "${statusText}"?`)) return;
-            
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`/api/donations/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ status })
-                });
-                
-                if (response.ok) {
-                    loadDonations(currentPage, getFilters());
-                    alert(`Status berhasil diubah menjadi "${statusText}"`);
-                } else {
-                    alert('Gagal mengubah status');
-                }
-            } catch (error) {
-                alert('Terjadi kesalahan');
-            }
         }
 
         async function deleteDonation(id) {
@@ -471,7 +400,6 @@
         function getFilters() {
             return {
                 search: document.getElementById('searchName').value,
-                status: document.getElementById('searchStatus').value,
                 month: document.getElementById('searchMonth').value,
                 year: document.getElementById('searchYear').value,
                 minAmount: document.getElementById('minAmount').value
@@ -483,7 +411,7 @@
         }
 
         function resetFilter() {
-            ['searchName', 'searchStatus', 'searchMonth', 'searchYear', 'minAmount'].forEach(id => {
+            ['searchName', 'searchMonth', 'searchYear', 'minAmount'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             loadDonations(1);
@@ -504,7 +432,6 @@
                 document.getElementById('editTelepon').value = donation.telepon || '';
                 document.getElementById('editJumlah').value = donation.jumlah;
                 document.getElementById('editMetode').value = donation.metodePembayaran;
-                document.getElementById('editStatus').value = donation.status;
                 document.getElementById('editKategori').value = donation.kategori;
                 document.getElementById('editKeterangan').value = donation.keterangan || '';
                 
@@ -535,7 +462,6 @@
                 formData.append('telepon', document.getElementById('editTelepon').value);
                 formData.append('jumlah', document.getElementById('editJumlah').value);
                 formData.append('metodePembayaran', document.getElementById('editMetode').value);
-                formData.append('status', document.getElementById('editStatus').value);
                 formData.append('kategori', document.getElementById('editKategori').value);
                 formData.append('keterangan', document.getElementById('editKeterangan').value);
                 
@@ -612,7 +538,6 @@
                 'Jumlah': donation.jumlah,
                 'Metode Pembayaran': donation.metodePembayaran,
                 'Kategori': donation.kategori,
-                'Status': getStatusText(donation.status),
                 'Keterangan': donation.keterangan || '-'
             }));
 
@@ -624,7 +549,6 @@
             const filters = getFilters();
             let filename = 'Riwayat-Donasi';
             if (filters.search) filename += `-${filters.search}`;
-            if (filters.status) filename += `-${filters.status}`;
             if (filters.month && filters.year) filename += `-${filters.year}-${filters.month}`;
             filename += `-${new Date().toISOString().split('T')[0]}.xlsx`;
 

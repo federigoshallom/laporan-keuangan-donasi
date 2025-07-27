@@ -38,10 +38,13 @@ app.use(express.json())
 app.use(express.static("public"))
 
 // Connect to MongoDB database
-mongoose.connect("mongodb+srv://admin:admin123@cluster0.j9z0b5n.mongodb.net/yayasan_donasi?retryWrites=true&w=majority", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(
+  "mongodb+srv://admin:admin123@cluster0.j9z0b5n.mongodb.net/yayasan_donasi?retryWrites=true&w=majority",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  },
+)
 
 // Define database schemas and models
 const userSchema = new mongoose.Schema({
@@ -59,7 +62,6 @@ const donationSchema = new mongoose.Schema(
     tanggal: { type: Date, required: true },
     metodePembayaran: { type: String, required: true },
     keterangan: { type: String, default: "" },
-    status: { type: String, enum: ["pending", "confirmed", "rejected"], default: "pending" },
     kategori: { type: String, default: "umum" },
     buktiPembayaran: { type: String, default: "" }, // path ke file bukti
   },
@@ -170,12 +172,11 @@ app.get("/api/dashboard", authenticateToken, async (req, res) => {
 // Donations API - CRUD operations for donation data
 app.get("/api/donations", authenticateToken, async (req, res) => {
   try {
-    const { search, month, year, minAmount, category, status, page = 1, limit = 10, startDate, endDate } = req.query
+    const { search, month, year, minAmount, category, page = 1, limit = 10, startDate, endDate } = req.query
     const filter = {}
 
     if (search) filter.nama = { $regex: search, $options: "i" }
     if (category) filter.kategori = category
-    if (status) filter.status = status
     if (minAmount) filter.jumlah = { $gte: Number.parseInt(minAmount) }
 
     if (startDate && endDate) {
@@ -241,7 +242,6 @@ app.post("/api/donations", authenticateToken, upload.single("buktiPembayaran"), 
       metodePembayaran: req.body.metodePembayaran,
       keterangan: req.body.keterangan || "",
       kategori: req.body.kategori || "umum",
-      status: req.body.status || "confirmed",
       buktiPembayaran: req.file ? req.file.filename : "",
     })
 
