@@ -679,182 +679,281 @@ async function exportToPDF() {
             if (!text) return 'N/A';
             return String(text).substring(0, maxLength);
         }
+
+        // ===== 1. HALAMAN JUDUL LAPORAN =====
+        try {
+            // Load and add the handshake logo
+            const logoImg = new Image();
+            logoImg.src = '/handshake-logo.png';
+            await new Promise((resolve, reject) => {
+                logoImg.onload = resolve;
+                logoImg.onerror = reject;
+            });
+            
+            // Add logo image centered
+            doc.addImage(logoImg, 'PNG', 85, yPosition, 40, 40);
+            yPosition += 50;
+        } catch (logoError) {
+            console.warn('Could not load logo:', logoError);
+            // Fallback to text
+            doc.setFontSize(16);
+            doc.text('YAYASAN XYZ', 105, yPosition, { align: 'center' });
+            yPosition += 15;
+        }
         
-        // Header
-        doc.setFontSize(18);
+        // Report Title - properly formatted and centered
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('LAPORAN KEUANGAN YAYASAN', 105, yPosition, { align: 'center' });
-        yPosition += 15;
-        
         const startMonth = document.getElementById('startMonth').value;
         const endMonth = document.getElementById('endMonth').value;
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'normal');
-        doc.text(`Periode: ${startMonth} s/d ${endMonth}`, 105, yPosition, { align: 'center' });
+        
+        // Split title into multiple lines to prevent cutoff
+        doc.text('LAPORAN KEUANGAN YAYASAN XYZ', 105, yPosition, { align: 'center' });
         yPosition += 8;
-        doc.text(`Tanggal Generate: ${new Date().toLocaleDateString('id-ID')}`, 105, yPosition, { align: 'center' });
+        doc.text(`PERIODE ${startMonth.toUpperCase()} - ${endMonth.toUpperCase()} 2025`, 105, yPosition, { align: 'center' });
         yPosition += 20;
         
-        // Summary Section
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text('RINGKASAN KEUANGAN', 20, yPosition);
-        yPosition += 10;
-        
-        doc.setFontSize(10);
+        // Report period
+        doc.setFontSize(12);
         doc.setFont(undefined, 'normal');
-        const summary = currentReportData.summary;
-        doc.text(`Total Donasi: ${formatCurrency(summary.totalDonations)}`, 20, yPosition);
-        yPosition += 6;
-        doc.text(`Total Pengeluaran: ${formatCurrency(summary.totalExpenses)}`, 20, yPosition);
-        yPosition += 6;
-        doc.text(`Saldo: ${formatCurrency(summary.balance)}`, 20, yPosition);
-        yPosition += 6;
-        doc.text(`Total Donatur: ${summary.totalDonors} orang`, 20, yPosition);
-        yPosition += 6;
-        doc.text(`Total Budget: ${formatCurrency(summary.totalBudget)}`, 20, yPosition);
-        yPosition += 6;
-        doc.text(`Budget Terpakai: ${formatCurrency(summary.usedBudget)}`, 20, yPosition);
+        doc.text('Periode laporan:', 20, yPosition);
+        yPosition += 8;
+        doc.text(`${startMonth} s/d ${endMonth} 2025`, 20, yPosition);
         yPosition += 15;
         
-        // Top Donors Section
-        checkNewPage(40);
-        doc.setFontSize(14);
+        // Creation date
+        doc.text('Tanggal pembuatan:', 20, yPosition);
+        yPosition += 8;
+        doc.text(new Date().toLocaleDateString('id-ID'), 20, yPosition);
+        yPosition += 30;
+        
+        // Signature section
+        doc.text('Tanda tangan Ketua Yayasan & Bendahara:', 20, yPosition);
+        yPosition += 20;
+        
+        // Signature boxes
+        doc.text('Ketua Yayasan', 40, yPosition);
+        doc.text('Bendahara', 130, yPosition);
+        yPosition += 40;
+        
+        // Signature lines
+        doc.line(20, yPosition, 90, yPosition);   // Ketua Yayasan
+        doc.line(110, yPosition, 180, yPosition); // Bendahara
+        yPosition += 10;
+        doc.text('(                                          )', 32, yPosition); 
+        doc.text('(                                          )', 122, yPosition);
+        
+        // ===== 2. RINGKASAN KEUANGAN =====
+        doc.addPage();
+        yPosition = 20;
+        
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('TOP 5 DONATUR TERBESAR', 20, yPosition);
+        doc.text('Ringkasan Keuangan', 20, yPosition);
+        yPosition += 20;
+        
+        const summary = currentReportData.summary;
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        
+        doc.text('Total donasi:', 20, yPosition);
+        doc.text(formatCurrency(summary.totalDonations), 120, yPosition);
         yPosition += 10;
         
-        doc.setFontSize(10);
+        doc.text('Total pengeluaran:', 20, yPosition);
+        doc.text(formatCurrency(summary.totalExpenses), 120, yPosition);
+        yPosition += 10;
+        
+        doc.text('Saldo akhir:', 20, yPosition);
+        doc.text(formatCurrency(summary.balance), 120, yPosition);
+        yPosition += 10;
+        
+        doc.text('Jumlah donatur:', 20, yPosition);
+        doc.text(summary.totalDonors.toString(), 120, yPosition);
+        yPosition += 10;
+        
+        doc.text('Jumlah budget:', 20, yPosition);
+        doc.text(formatCurrency(summary.totalBudget), 120, yPosition);
+        yPosition += 30;
+
+        // ===== 3. GRAFIK & ANALISIS =====
+        checkNewPage(80);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Grafik & Analisis', 20, yPosition);
+        yPosition += 15;
+        
+        doc.setFontSize(12);
         doc.setFont(undefined, 'normal');
-        if (currentReportData.detailed.topDonors && currentReportData.detailed.topDonors.length > 0) {
-            currentReportData.detailed.topDonors.forEach((donor, index) => {
-                const medal = index === 0 ? '1.' : index === 1 ? '2.' : index === 2 ? '3.' : `${index + 1}.`;
-                doc.text(`${medal} ${safeText(donor.nama, 30)} - ${formatCurrency(donor.total)}`, 25, yPosition);
-                yPosition += 6;
-            });
-        } else {
-            doc.text('Tidak ada data donatur', 25, yPosition);
-            yPosition += 6;
+        
+        // Left chart title
+        doc.text('Grafik penerimaan dan pengeluaran per bulan', 20, yPosition);
+        // Right chart title  
+        doc.text('Grafik total budget dan realisasinya', 110, yPosition);
+        yPosition += 10;
+        
+        try {
+            // Capture trend chart as image (left side)
+            const trendCanvas = document.getElementById('trendChart');
+            if (trendCanvas && trendChart) {
+                const trendImageData = trendCanvas.toDataURL('image/png');
+                doc.addImage(trendImageData, 'PNG', 20, yPosition, 80, 50);
+            }
+            
+            // Capture budget chart as image (right side)
+            const budgetCanvas = document.getElementById('budgetChart');
+            if (budgetCanvas && budgetChart) {
+                const budgetImageData = budgetCanvas.toDataURL('image/png');
+                doc.addImage(budgetImageData, 'PNG', 110, yPosition, 80, 50);
+            }
+            
+            yPosition += 60;
+        } catch (chartError) {
+            console.warn('Could not capture charts:', chartError);
+            // Fallback to text description
+            doc.text('(Grafik tidak dapat ditampilkan dalam PDF)', 20, yPosition);
+            yPosition += 15;
         }
+        
+        doc.text('Analisis pemakaian anggaran (persentase terpakai vs sisa)', 20, yPosition);
         yPosition += 10;
         
-        // Budget Analysis Section
-        checkNewPage(40);
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text('ANALISIS BUDGET', 20, yPosition);
-        yPosition += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
         if (currentReportData.budgetAnalysis && currentReportData.budgetAnalysis.length > 0) {
             currentReportData.budgetAnalysis.forEach(budget => {
-                checkNewPage(15);
-                doc.text(`${safeText(budget.kategori)} (${safeText(budget.periode)})`, 25, yPosition);
-                yPosition += 5;
-                doc.text(`  Budget: ${formatCurrency(budget.anggaran)}`, 25, yPosition);
-                yPosition += 5;
-                doc.text(`  Terpakai: ${formatCurrency(budget.terpakai)} (${budget.percentage || 0}%)`, 25, yPosition);
-                yPosition += 5;
-                doc.text(`  Sisa: ${formatCurrency(budget.remaining)}`, 25, yPosition);
-                yPosition += 8;
+                const percentage = Math.round(budget.percentage || 0);
+                doc.text(`${safeText(budget.kategori)}: ${percentage}% terpakai`, 25, yPosition);
+                yPosition += 6;
+                doc.text(`Terpakai: ${formatCurrency(budget.terpakai)}`, 25, yPosition);
+                yPosition += 6;
+                doc.text(`Budget: ${formatCurrency(budget.anggaran)}`, 25, yPosition);
+                yPosition += 6;
+                doc.text(`Sisa: ${formatCurrency(budget.remaining)}`, 25, yPosition);
+                yPosition += 10;
             });
         } else {
-            doc.text('Tidak ada data budget', 25, yPosition);
+            const budgetUsagePercentage = summary.totalBudget > 0 ? 
+                Math.round((summary.totalExpenses / summary.totalBudget) * 100) : 0;
+            
+            doc.text(`Operasional: ${budgetUsagePercentage}% terpakai`, 25, yPosition);
             yPosition += 6;
+            doc.text(`Terpakai: ${formatCurrency(summary.totalExpenses)}`, 25, yPosition);
+            yPosition += 6;
+            doc.text(`Budget: ${formatCurrency(summary.totalBudget)}`, 25, yPosition);
+            yPosition += 6;
+            doc.text(`Sisa: ${formatCurrency(summary.totalBudget - summary.totalExpenses)}`, 25, yPosition);
+            yPosition += 10;
         }
-        yPosition += 10;
-        
-        // Donations Detail Section
+        yPosition += 15;
+
+        // ===== 4. DETAIL DONASI =====
         checkNewPage(40);
-        doc.setFontSize(14);
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('DETAIL DONASI', 20, yPosition);
+        doc.text('Detail Donasi', 20, yPosition);
+        yPosition += 15;
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('Tabel berisi:', 20, yPosition);
         yPosition += 10;
         
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        
         // Table headers
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
         doc.text('Tanggal', 20, yPosition);
-        doc.text('Nama', 45, yPosition);
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        
-        // Table headers
-        doc.text('Tanggal', 20, yPosition);
-        doc.text('Nama', 45, yPosition);
-        doc.text('Jumlah', 100, yPosition);
-        doc.text('Metode', 130, yPosition);
+        doc.text('Nama Donatur', 50, yPosition);
+        doc.text('Metode Pembayaran', 100, yPosition);
+        doc.text('Deskripsi', 140, yPosition);
+        doc.text('Jumlah (Rp)', 170, yPosition);
         yPosition += 5;
         
         // Draw line under headers
         doc.line(20, yPosition, 190, yPosition);
         yPosition += 5;
         
+        doc.setFont(undefined, 'normal');
         if (currentReportData.rawData.donations && currentReportData.rawData.donations.length > 0) {
-            currentReportData.rawData.donations.slice(0, 20).forEach(donation => {
+            currentReportData.rawData.donations.slice(0, 15).forEach(donation => {
                 checkNewPage(8);
                 doc.text(donation.tanggal ? new Date(donation.tanggal).toLocaleDateString('id-ID') : 'N/A', 20, yPosition);
-                doc.text(safeText(donation.nama, 20), 45, yPosition);
-                doc.text(formatCurrency(donation.jumlah), 100, yPosition);
-                doc.text(safeText(donation.metodePembayaran, 15), 130, yPosition);
+                doc.text(safeText(donation.nama, 15), 50, yPosition);
+                doc.text(safeText(donation.metodePembayaran, 12), 100, yPosition);
+                doc.text(safeText(donation.deskripsi || '-', 12), 140, yPosition);
+                doc.text(formatCurrency(donation.jumlah), 170, yPosition);
                 yPosition += 5;
             });
-            
-            if (currentReportData.rawData.donations.length > 20) {
-                yPosition += 5;
-                doc.text(`... dan ${currentReportData.rawData.donations.length - 20} donasi lainnya`, 20, yPosition);
-                yPosition += 5;
-            }
         } else {
             doc.text('Tidak ada data donasi', 20, yPosition);
             yPosition += 5;
         }
         yPosition += 15;
         
-        // Expenses Detail Section
+        // ===== 5. DETAIL PENGELUARAN =====
         checkNewPage(40);
-        doc.setFontSize(14);
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('DETAIL PENGELUARAN', 20, yPosition);
+        doc.text('Detail Pengeluaran', 20, yPosition);
+        yPosition += 15;
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('Tabel berisi:', 20, yPosition);
         yPosition += 10;
         
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        
         // Table headers
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
         doc.text('Tanggal', 20, yPosition);
-        doc.text('Kategori', 45, yPosition);
-        doc.text('Deskripsi', 80, yPosition);
-        doc.text('Jumlah', 130, yPosition);
+        doc.text('Kategori', 50, yPosition);
+        doc.text('Deskripsi', 90, yPosition);
+        doc.text('Jumlah (Rp)', 150, yPosition);
         yPosition += 5;
         
         // Draw line under headers
         doc.line(20, yPosition, 190, yPosition);
         yPosition += 5;
         
+        doc.setFont(undefined, 'normal');
         if (currentReportData.rawData.expenses && currentReportData.rawData.expenses.length > 0) {
-            currentReportData.rawData.expenses.slice(0, 20).forEach(expense => {
+            currentReportData.rawData.expenses.slice(0, 15).forEach(expense => {
                 checkNewPage(8);
                 doc.text(expense.tanggal ? new Date(expense.tanggal).toLocaleDateString('id-ID') : 'N/A', 20, yPosition);
-                doc.text(safeText(expense.kategori, 15), 45, yPosition);
-                doc.text(safeText(expense.deskripsi, 25), 80, yPosition);
-                doc.text(formatCurrency(expense.jumlah), 130, yPosition);
+                doc.text(safeText(expense.kategori, 15), 50, yPosition);
+                doc.text(safeText(expense.deskripsi, 25), 90, yPosition);
+                doc.text(formatCurrency(expense.jumlah), 150, yPosition);
                 yPosition += 5;
             });
-            
-            if (currentReportData.rawData.expenses.length > 20) {
-                yPosition += 5;
-                doc.text(`... dan ${currentReportData.rawData.expenses.length - 20} pengeluaran lainnya`, 20, yPosition);
-                yPosition += 5;
-            }
         } else {
             doc.text('Tidak ada data pengeluaran', 20, yPosition);
             yPosition += 5;
         }
+        yPosition += 15;
         
-        // Footer
+        // ===== 6. TOP DONATUR =====
+        checkNewPage(40);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Top Donatur', 20, yPosition);
+        yPosition += 15;
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('Tabel 5 penyumbang terbesar beserta jumlah totalnya', 20, yPosition);
+        yPosition += 10;
+        
+        if (currentReportData.detailed.topDonors && currentReportData.detailed.topDonors.length > 0) {
+            currentReportData.detailed.topDonors.forEach((donor, index) => {
+                checkNewPage(8);
+                doc.text(`${index + 1}. ${safeText(donor.nama, 30)} - ${formatCurrency(donor.total)}`, 25, yPosition);
+                yPosition += 6;
+            });
+        } else {
+            doc.text('Tidak ada data donatur', 25, yPosition);
+            yPosition += 6;
+        }
+        yPosition += 15;
+        
+        // Footer for all pages
         const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
